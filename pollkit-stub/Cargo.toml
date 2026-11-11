@@ -1,0 +1,13 @@
+[package]
+name = "polkit-stub"
+version = "0.1.0"
+edition = "2021"
+description = "Approves every polkit CheckAuthorization call (ChromeOS has no polkit)"
+
+[dependencies]
+zbus = "5"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

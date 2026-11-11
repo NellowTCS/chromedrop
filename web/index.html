@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Chromedrop</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0a84ff">
+  <link rel="icon" href="/icon-192.png">
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --card: #fff;
+      --fg: #14171a;
+      --mut: #667;
+      --acc: #0a84ff;
+      --bad: #d33;
+      --ok: #1a9d4b;
+      --bd: #e2e4e8
+    }
+
+    @media(prefers-color-scheme:dark) {
+      :root {
+        --bg: #111316;
+        --card: #1b1e23;
+        --fg: #eceef1;
+        --mut: #9aa1ab;
+        --bd: #2a2e35
+      }
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 15px/1.45 system-ui, sans-serif
+    }
+
+    main {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 16px
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 4px 0 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: var(--bd);
+      color: var(--mut)
+    }
+
+    .pill.on {
+      background: var(--ok);
+      color: #fff
+    }
+
+    button {
+      font: inherit;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: var(--acc);
+      color: #fff;
+      cursor: pointer
+    }
+
+    button.big {
+      width: 100%;
+      padding: 16px;
+      font-size: 17px
+    }
+
+    button.off {
+      background: var(--bad)
+    }
+
+    button.sec {
+      background: var(--bd);
+      color: var(--fg)
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: default
+    }
+
+    .mut {
+      color: var(--mut);
+      font-size: 13px
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    .err {
+      color: var(--bad)
+    }
+
+    ul {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0
+    }
+
+    li {
+      padding: 6px 0;
+      border-top: 1px solid var(--bd)
+    }
+
+    input[type=text] {
+      width: 100%;
+      padding: 9px;
+      border-radius: 8px;
+      border: 1px solid var(--bd);
+      background: var(--bg);
+      color: var(--fg);
+      font: inherit
+    }
+
+    pre {
+      white-space: pre-wrap;
+      font-size: 12px;
+      max-height: 200px;
+      overflow: auto;
+      background: var(--bg);
+      padding: 8px;
+      border-radius: 8px
+    }
+
+    #incoming {
+      border-color: var(--acc)
+    }
+
+    .hide {
+      display: none
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>Chromedrop <span id="pill" class="pill">off</span></h1>
+
+    <div class="card">
+      <button id="toggle" class="big">Turn on AirDrop</button>
+      <p class="mut" id="hint">Wi-Fi is switched off while AirDrop is on.</p>
+      <p class="err" id="err"></p>
+    </div>
+
+    <div class="card hide" id="incoming">
+      <b id="from"></b> wants to send:<ul id="files"></ul>
+      <div class="row" style="margin-top:10px"><button id="yes">Accept</button><button id="no"
+          class="sec">Decline</button></div>
+    </div>
+
+    <div class="card">
+      <label class="row"><input type="checkbox" id="auto"> Auto-accept everything (only while you trust the
+        room)</label>
+      <p class="mut">Saving to <code id="dir"></code></p>
+      <b>Received</b>
+      <ul id="recv">
+        <li class="mut">Nothing yet</li>
+      </ul>
+    </div>
+
+    <div class="card hide" id="sendcard">
+      <b>Send</b>
+      <div class="row" style="margin:8px 0"><button id="find" class="sec">Find devices</button><span class="mut"
+          id="findmsg"></span></div>
+      <ul id="devs"></ul>
+      <input type="text" id="to" placeholder="Device name (e.g. Jane's iPhone)" style="margin:8px 0">
+      <div class="row"><input type="file" id="file"><button id="send">Send</button></div>
+      <p class="mut" id="sendmsg"></p>
+    </div>
+
+    <details class="card">
+      <summary class="mut">Log</summary>
+      <pre id="log"></pre>
+    </details>
+  </main>
+  <script>
+    const $ = s => document.querySelector(s), H = {'X-Chromedrop': '1'};
+    const post = (p, b) => fetch(p, {method: 'POST', headers: {...H, 'Content-Type': 'application/json'}, body: JSON.stringify(b || {})}).then(r => r.json());
+    const mb = n => n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
+    let S = {}, wasPending = false;
+    function li(t) {const e = document.createElement('li'); e.textContent = t; return e}
+    function render() {
+      const on = S.mode === 'on', busy = S.mode === 'starting' || S.mode === 'stopping';
+      $('#pill').textContent = S.mode; $('#pill').className = 'pill' + (on ? ' on' : '');
+      const t = $('#toggle'); t.disabled = busy; t.className = 'big' + (on ? ' off' : '');
+      t.textContent = busy ? (S.mode === 'starting' ? 'Starting…' : 'Stopping…') : on ? 'Turn off AirDrop' : 'Turn on AirDrop';
+      $('#hint').textContent = on ? 'On the iPhone: AirDrop → Everyone for 10 minutes. Wi-Fi is off until you turn this off.' : 'Wi-Fi is switched off while AirDrop is on.';
+      $('#err').textContent = S.error || '';
+      $('#sendcard').classList.toggle('hide', !on);
+      $('#incoming').classList.toggle('hide', !S.pending);
+      if (S.pending) {
+        $('#from').textContent = S.sender || 'Someone';
+        const f = $('#files'); f.replaceChildren(...(S.files || []).map(x => li(`${x.name} (${mb(x.size)})`)));
+        if (!wasPending && window.Notification && Notification.permission === 'granted') new Notification('AirDrop', {body: (S.sender || 'Someone') + ' wants to send a file'});
+      }
+      wasPending = !!S.pending;
+      $('#auto').checked = !!S.auto_accept; $('#dir').textContent = S.dir || '';
+      const r = (S.received || []).slice().reverse();
+      $('#recv').replaceChildren(...(r.length ? r.map(x => li(`${x.name} · ${mb(x.size)}${x.from ? ' · from ' + x.from : ''}`)) : [li('Nothing yet')]));
+      $('#log').textContent = (S.log || []).join('\n');
+    }
+    $('#toggle').onclick = () => {
+      if (S.mode === 'on') return post('/api/stop');
+      if (window.Notification && Notification.permission === 'default') Notification.requestPermission();
+      post('/api/start');
+    };
+    $('#yes').onclick = () => post('/api/accept', {accept: true});
+    $('#no').onclick = () => post('/api/accept', {accept: false});
+    $('#auto').onchange = e => post('/api/config', {auto_accept: e.target.checked});
+    $('#find').onclick = async () => {
+      $('#find').disabled = true; $('#findmsg').textContent = 'Searching (10 s)…';
+      const r = await post('/api/browse'); $('#find').disabled = false;
+      const d = r.devices || []; $('#findmsg').textContent = d.length ? '' : 'Nothing found. Is the iPhone on "Everyone"?';
+      $('#devs').replaceChildren(...d.map(n => {const e = li(n); e.style.cursor = 'pointer'; e.onclick = () => {$('#to').value = n}; return e}));
+    };
+    $('#send').onclick = async () => {
+      const f = $('#file').files[0], to = $('#to').value.trim();
+      if (!f || !to) {$('#sendmsg').textContent = 'Pick a file and a device.'; return }
+      $('#send').disabled = true; $('#sendmsg').textContent = 'Sending…';
+      try {
+        const r = await fetch(`/api/send?to=${encodeURIComponent(to)}&name=${encodeURIComponent(f.name)}`, {method: 'POST', headers: H, body: f}).then(r => r.json());
+        $('#sendmsg').textContent = r.ok ? 'Sent ✓' : 'Failed: ' + (r.out || r.error || 'unknown error');
+      } catch (e) {$('#sendmsg').textContent = 'Failed: ' + e}
+      $('#send').disabled = false;
+    };
+    new EventSource('/api/events').onmessage = e => {S = JSON.parse(e.data); render()};
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+  </script>
+</body>
+
+</html>
