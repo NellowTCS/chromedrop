@@ -64,6 +64,11 @@ install -m 644 "$SRC"/web/* /usr/local/lib/chromedrop/web/
 [ -f /etc/chromedrop.conf ] || install -m 644 "$SRC/chromedrop.conf" /etc/chromedrop.conf
 install -m 644 "$SRC/init/owlyd.conf" "$SRC/init/chromedrop-web.conf" /etc/init/
 
+say "Installing Bluetooth configuration"
+if [ -f "$SRC/dbus/org.bluez.chromedrop.conf" ]; then
+  install -m 644 "$SRC/dbus/org.bluez.chromedrop.conf" /etc/dbus-1/system.d/
+fi
+
 if [ "$WITH_STUB" = 1 ]; then
   say "Installing polkit stub (lets plain 'owly ...' work in crosh; the web UI doesn't need it)"
   if curl -fsSL -o /tmp/polkit-stub "https://github.com/$REPO/releases/latest/download/polkit-stub-x86_64"; then
