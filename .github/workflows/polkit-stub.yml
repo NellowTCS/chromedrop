@@ -1,11 +1,13 @@
 name: polkit-stub
 on:
   push:
-    tags: ['v*']
-  release:
-  workflow_dispatch: 
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
