@@ -26,6 +26,9 @@ Turn AirDrop on, set the iPhone to **Everyone for 10 minutes**, and send. Accept
 While AirDrop is on Wi-Fi is off (Intel cards run in Exclusive mode); turning it off brings Wi-Fi back.
 Files go in `MyFiles/Downloads`. Keep the app window open (minimised is fine) to get notifications.
 
+## Name and picture
+iPhones show the name from your Google account, read from Chrome's profile on each start. Set `DEVICE_NAME=` in `/etc/chromedrop.conf` to override it. The AirDrop protocol has no way to send a profile picture to an iPhone in Everyone mode :(, so your picture only appears in this app.
+
 ## Notes
 - Transfers are slow (channel 6, ~10-17 s per photo).
 - The service runs as root and binds only to `127.0.0.1`. It rejects other `Host`/`Origin` headers and requires an `X-Chromedrop` header on POSTs.

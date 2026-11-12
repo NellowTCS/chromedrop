@@ -3,258 +3,720 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Chromedrop</title>
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#0a84ff">
   <link rel="icon" href="/icon-192.png">
+  <meta name="theme-color" content="#cfe3ff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#10223f" media="(prefers-color-scheme: dark)">
   <style>
     :root {
-      --bg: #f4f5f7;
-      --card: #fff;
-      --fg: #14171a;
-      --mut: #667;
-      --acc: #0a84ff;
-      --bad: #d33;
-      --ok: #1a9d4b;
-      --bd: #e2e4e8
+      color-scheme: light dark;
+      --blue: #007aff;
+      --green: #34c759;
+      --red: #ff3b30;
+      --label: #000;
+      --label2: rgba(60, 60, 67, .62);
+      --glass: rgba(255, 255, 255, .42);
+      --edge: rgba(255, 255, 255, .7);
+      --shade: rgba(40, 60, 140, .18);
+      --hair: rgba(60, 60, 67, .14);
+      --fill: rgba(120, 120, 128, .16);
+      --bg1: #bcd8ff;
+      --bg2: #ffd0e8;
+      --bg3: #c9ffe0;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", system-ui, Roboto, sans-serif
     }
 
     @media(prefers-color-scheme:dark) {
       :root {
-        --bg: #111316;
-        --card: #1b1e23;
-        --fg: #eceef1;
-        --mut: #9aa1ab;
-        --bd: #2a2e35
+        --blue: #0a84ff;
+        --green: #30d158;
+        --red: #ff453a;
+        --label: #fff;
+        --label2: rgba(235, 235, 245, .62);
+        --glass: rgba(44, 44, 54, .46);
+        --edge: rgba(255, 255, 255, .2);
+        --shade: rgba(0, 0, 0, .5);
+        --hair: rgba(255, 255, 255, .14);
+        --fill: rgba(120, 120, 128, .32);
+        --bg1: #0f2a55;
+        --bg2: #3a1745;
+        --bg3: #0b3a2e
       }
     }
 
     * {
-      box-sizing: border-box
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%
     }
 
     body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font: 15px/1.45 system-ui, sans-serif
+      font: 17px/1.35 var(--font);
+      color: var(--label);
+      background: var(--bg1);
+      -webkit-font-smoothing: antialiased;
+      padding: max(20px, env(safe-area-inset-top)) 16px max(120px, env(safe-area-inset-bottom))
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -20%;
+      z-index: -1;
+      filter: blur(40px) saturate(150%);
+      background: radial-gradient(40% 35% at 20% 20%, var(--bg2), transparent 70%), radial-gradient(45% 40% at 85% 30%, var(--bg3), transparent 70%),
+        radial-gradient(50% 45% at 50% 95%, #7aa8ff55, transparent 70%);
+      animation: drift 24s ease-in-out infinite alternate
+    }
+
+    @keyframes drift {
+      to {
+        transform: translate3d(-4%, 3%, 0) scale(1.08)
+      }
     }
 
     main {
-      max-width: 560px;
+      max-width: 520px;
       margin: 0 auto;
-      padding: 16px
+      display: grid;
+      gap: 18px
     }
 
-    h1 {
-      font-size: 20px;
-      margin: 4px 0 12px;
+    header {
       display: flex;
-      gap: 8px;
-      align-items: center
+      align-items: center;
+      gap: 14px;
+      padding: 6px 4px 0
     }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--bd);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px
+    header h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.05;
+      letter-spacing: -.02em;
+      font-weight: 700
     }
 
-    .pill {
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 99px;
-      background: var(--bd);
-      color: var(--mut)
+    header p {
+      margin: 2px 0 0;
+      color: var(--label2);
+      font-size: 15px
     }
 
-    .pill.on {
-      background: var(--ok);
-      color: #fff
-    }
-
-    button {
-      font: inherit;
-      border: 0;
-      border-radius: 10px;
-      padding: 10px 14px;
-      background: var(--acc);
+    .ava {
+      margin-left: auto;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex: none;
+      display: grid;
+      place-items: center;
+      font-weight: 600;
       color: #fff;
-      cursor: pointer
+      background: linear-gradient(135deg, #8e8cff, #0a84ff);
+      box-shadow: 0 0 0 2px var(--edge)
     }
 
-    button.big {
-      width: 100%;
-      padding: 16px;
-      font-size: 17px
+    .glass {
+      position: relative;
+      overflow: hidden;
+      border-radius: 30px;
+      background: var(--glass);
+      border: 1px solid var(--edge);
+      -webkit-backdrop-filter: blur(30px) saturate(190%);
+      backdrop-filter: blur(30px) saturate(190%);
+      box-shadow: 0 12px 40px var(--shade), inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(255, 255, 255, .08)
     }
 
-    button.off {
-      background: var(--bad)
+    .glass::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(255, 255, 255, .38), transparent 38%, transparent 62%, rgba(255, 255, 255, .14))
     }
 
-    button.sec {
-      background: var(--bd);
-      color: var(--fg)
+    .glass>* {
+      position: relative
     }
 
-    button:disabled {
-      opacity: .5;
+    @supports not (backdrop-filter:blur(1px)) {
+      .glass {
+        background: Canvas
+      }
+    }
+
+    .hero {
+      padding: 30px 20px 24px;
+      text-align: center
+    }
+
+    .radar {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin: 0 auto 14px
+    }
+
+    .radar i {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--blue);
+      opacity: 0
+    }
+
+    .on .radar i {
+      animation: ping 3s cubic-bezier(.2, .6, .3, 1) infinite
+    }
+
+    .on .radar i:nth-child(2) {
+      animation-delay: 1s
+    }
+
+    .on .radar i:nth-child(3) {
+      animation-delay: 2s
+    }
+
+    @keyframes ping {
+      0% {
+        transform: scale(.62);
+        opacity: .55
+      }
+
+      100% {
+        transform: scale(1.9);
+        opacity: 0
+      }
+    }
+
+    .orb {
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      border: 1px solid var(--edge);
+      cursor: pointer;
+      color: var(--label2);
+      background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, .75), rgba(255, 255, 255, .12) 55%), var(--glass);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 30px var(--shade), inset 0 2px 0 rgba(255, 255, 255, .7), inset 0 -8px 16px rgba(0, 0, 0, .06);
+      transition: transform .25s, color .25s
+    }
+
+    .orb:active {
+      transform: scale(.94)
+    }
+
+    .orb:disabled {
+      opacity: .7
+    }
+
+    .on .orb {
+      color: var(--blue)
+    }
+
+    .orb svg {
+      width: 52px;
+      height: 52px
+    }
+
+    .hero h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: -.01em
+    }
+
+    .hero p {
+      margin: 6px auto 0;
+      max-width: 34ch;
+      color: var(--label2);
+      font-size: 15px
+    }
+
+    .err {
+      color: var(--red);
+      font-size: 14px;
+      margin-top: 8px
+    }
+
+    .btn {
+      font: 600 16px var(--font);
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 24px;
+      cursor: pointer;
+      color: #fff;
+      background: var(--blue);
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--blue) 40%, transparent);
+      transition: transform .15s, opacity .2s
+    }
+
+    .btn:active {
+      transform: scale(.96)
+    }
+
+    .btn:disabled {
+      opacity: .45;
       cursor: default
     }
 
-    .mut {
-      color: var(--mut);
-      font-size: 13px
+    .btn.soft {
+      background: var(--fill);
+      color: var(--blue);
+      box-shadow: none
+    }
+
+    .btn.red {
+      background: var(--red)
+    }
+
+    .btn.small {
+      padding: 9px 16px;
+      font-size: 15px
+    }
+
+    .sec {
+      padding: 18px
+    }
+
+    .sec h3 {
+      margin: 0 0 4px;
+      font-size: 13px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--label2);
+      font-weight: 600
+    }
+
+    .hide {
+      display: none !important
+    }
+
+    .people {
+      display: flex;
+      gap: 18px;
+      overflow-x: auto;
+      padding: 12px 2px 6px;
+      scrollbar-width: none;
+      min-height: 96px
+    }
+
+    .person {
+      background: none;
+      border: 0;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+      width: 76px;
+      flex: none
+    }
+
+    .person b {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      color: #fff;
+      font-weight: 600;
+      background: linear-gradient(135deg, #8e8cff, #0a84ff);
+      box-shadow: 0 6px 16px var(--shade);
+      transition: transform .2s, box-shadow .2s
+    }
+
+    .person span {
+      font-size: 12px;
+      line-height: 1.2;
+      max-width: 76px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .person.sel b {
+      transform: scale(1.08);
+      box-shadow: 0 0 0 3px var(--bg1), 0 0 0 6px var(--blue)
+    }
+
+    .empty {
+      color: var(--label2);
+      font-size: 15px;
+      padding: 10px 2px
+    }
+
+    .drop {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+      padding: 16px;
+      border-radius: 20px;
+      border: 1.5px dashed var(--hair);
+      cursor: pointer;
+      color: var(--label2)
+    }
+
+    .drop.over {
+      border-color: var(--blue);
+      background: var(--fill)
+    }
+
+    .drop input {
+      display: none
+    }
+
+    .drop svg {
+      width: 26px;
+      height: 26px;
+      flex: none
+    }
+
+    .drop span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
     }
 
     .row {
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center
+      align-items: center;
+      gap: 12px;
+      padding: 12px 2px;
+      border-top: 1px solid var(--hair)
     }
 
-    .err {
-      color: var(--bad)
+    .row:first-of-type {
+      border-top: 0
     }
 
-    ul {
-      list-style: none;
-      margin: 8px 0 0;
-      padding: 0
+    .row .t {
+      flex: 1;
+      min-width: 0
     }
 
-    li {
-      padding: 6px 0;
-      border-top: 1px solid var(--bd)
+    .row .t div {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
     }
 
-    input[type=text] {
-      width: 100%;
-      padding: 9px;
-      border-radius: 8px;
-      border: 1px solid var(--bd);
-      background: var(--bg);
-      color: var(--fg);
-      font: inherit
+    .row small {
+      color: var(--label2);
+      font-size: 13px
+    }
+
+    .ico {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: var(--fill);
+      color: var(--blue);
+      flex: none
+    }
+
+    .ico svg {
+      width: 20px;
+      height: 20px
+    }
+
+    .switch {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 51px;
+      height: 31px;
+      border-radius: 999px;
+      background: var(--fill);
+      position: relative;
+      cursor: pointer;
+      flex: none;
+      transition: background .25s
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+      transition: transform .25s cubic-bezier(.3, 1.4, .5, 1)
+    }
+
+    .switch:checked {
+      background: var(--green)
+    }
+
+    .switch:checked::after {
+      transform: translateX(20px)
+    }
+
+    .foot {
+      font-size: 12.5px;
+      color: var(--label2);
+      padding: 8px 4px 0
+    }
+
+    details {
+      padding: 14px 18px
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--label2);
+      font-size: 15px
     }
 
     pre {
       white-space: pre-wrap;
-      font-size: 12px;
-      max-height: 200px;
+      font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+      max-height: 220px;
       overflow: auto;
-      background: var(--bg);
-      padding: 8px;
-      border-radius: 8px
+      margin: 10px 0 0;
+      color: var(--label2)
     }
 
-    #incoming {
-      border-color: var(--acc)
+    .sheet {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      max-width: 496px;
+      margin: 0 auto;
+      padding: 22px 20px 20px;
+      z-index: 10;
+      transform: translateY(130%);
+      transition: transform .5s cubic-bezier(.2, .9, .25, 1.05)
     }
 
-    .hide {
-      display: none
+    .sheet.open {
+      transform: none
+    }
+
+    .sheet h4 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 650
+    }
+
+    .sheet p {
+      margin: 4px 0 12px;
+      color: var(--label2);
+      font-size: 15px
+    }
+
+    .sheet .acts {
+      display: flex;
+      gap: 10px
+    }
+
+    .sheet .acts .btn {
+      flex: 1
+    }
+
+    .sheet ul {
+      list-style: none;
+      margin: 0 0 14px;
+      padding: 0;
+      font-size: 15px
+    }
+
+    .sheet li {
+      padding: 4px 0
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+
+      *,
+      *::before {
+        animation: none !important;
+        transition: none !important
+      }
     }
   </style>
 </head>
 
 <body>
-  <main>
-    <h1>Chromedrop <span id="pill" class="pill">off</span></h1>
+  <main id="app">
 
-    <div class="card">
-      <button id="toggle" class="big">Turn on AirDrop</button>
-      <p class="mut" id="hint">Wi-Fi is switched off while AirDrop is on.</p>
-      <p class="err" id="err"></p>
-    </div>
+    <header>
+      <div>
+        <h1>AirDrop</h1>
+        <p id="vis">Visible as …</p>
+      </div><img id="me" class="ava hide" alt="">
+      <div id="meini" class="ava"></div>
+    </header>
 
-    <div class="card hide" id="incoming">
-      <b id="from"></b> wants to send:<ul id="files"></ul>
-      <div class="row" style="margin-top:10px"><button id="yes">Accept</button><button id="no"
-          class="sec">Decline</button></div>
-    </div>
+    <section class="glass hero">
+      <div class="radar"><i></i><i></i><i></i>
+        <button class="orb" id="orb" aria-label="Toggle AirDrop">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round">
+            <circle cx="24" cy="24" r="4" fill="currentColor" stroke="none" />
+            <path d="M15.5 15.5a12 12 0 0 0 0 17M32.5 15.5a12 12 0 0 1 0 17" />
+            <path d="M9.5 9.5a20 20 0 0 0 0 29M38.5 9.5a20 20 0 0 1 0 29" />
+          </svg>
+        </button>
+      </div>
+      <h2 id="state">AirDrop is off</h2>
+      <p id="hint">Tap to turn on. Wi-Fi switches off while AirDrop is on.</p>
+      <div class="err" id="err"></div>
+    </section>
 
-    <div class="card">
-      <label class="row"><input type="checkbox" id="auto"> Auto-accept everything (only while you trust the
-        room)</label>
-      <p class="mut">Saving to <code id="dir"></code></p>
-      <b>Received</b>
-      <ul id="recv">
-        <li class="mut">Nothing yet</li>
-      </ul>
-    </div>
+    <section class="glass sec hide" id="sendcard">
+      <h3>Send</h3>
+      <div class="people" id="people">
+        <div class="empty">Nobody yet. Open AirDrop on the iPhone, then search.</div>
+      </div>
+      <label class="drop" id="drop"><input type="file" id="file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+        </svg>
+        <span id="fname">Choose or drop a file</span></label>
+      <div style="display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap">
+        <button class="btn soft" id="find">Search for devices</button>
+        <button class="btn" id="send" disabled>Send</button>
+        <small id="sendmsg" style="color:var(--label2)"></small>
+      </div>
+    </section>
 
-    <div class="card hide" id="sendcard">
-      <b>Send</b>
-      <div class="row" style="margin:8px 0"><button id="find" class="sec">Find devices</button><span class="mut"
-          id="findmsg"></span></div>
-      <ul id="devs"></ul>
-      <input type="text" id="to" placeholder="Device name (e.g. Jane's iPhone)" style="margin:8px 0">
-      <div class="row"><input type="file" id="file"><button id="send">Send</button></div>
-      <p class="mut" id="sendmsg"></p>
-    </div>
+    <section class="glass sec">
+      <h3>Received</h3>
+      <div id="recv">
+        <div class="empty">Nothing yet</div>
+      </div>
+    </section>
 
-    <details class="card">
-      <summary class="mut">Log</summary>
+    <section class="glass sec">
+      <h3>Settings</h3>
+      <div class="row">
+        <div class="t">
+          <div>Auto-accept</div><small>Take everything without asking. Only while you trust the room.</small>
+        </div><input type="checkbox" class="switch" id="auto">
+      </div>
+      <div class="row">
+        <div class="t">
+          <div>Saving to</div><small id="dir"></small>
+        </div>
+      </div>
+    </section>
+
+    <details class="glass">
+      <summary>Log</summary>
       <pre id="log"></pre>
     </details>
+    <p class="foot">Chromedrop talks to Apple devices using the AirDrop protocol. Not affiliated with or endorsed by
+      Apple. AirDrop is a trademark of Apple Inc.</p>
   </main>
+
+  <div class="glass sheet" id="sheet" role="dialog" aria-live="assertive">
+    <h4 id="from">Someone</h4>
+    <p>wants to share with you</p>
+    <ul id="files"></ul>
+    <div class="acts"><button class="btn soft" id="no">Decline</button><button class="btn" id="yes">Accept</button>
+    </div>
+  </div>
+
   <script>
-    const $ = s => document.querySelector(s), H = {'X-Chromedrop': '1'};
-    const post = (p, b) => fetch(p, {method: 'POST', headers: {...H, 'Content-Type': 'application/json'}, body: JSON.stringify(b || {})}).then(r => r.json());
+    const $ = s => document.querySelector(s), H = { 'X-Chromedrop': '1' };
+    const post = (p, b) => fetch(p, { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) }).then(r => r.json());
     const mb = n => n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
-    let S = {}, wasPending = false;
-    function li(t) {const e = document.createElement('li'); e.textContent = t; return e}
+    const ago = t => { const s = Math.max(0, Date.now() / 1e3 - t); return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : new Date(t * 1e3).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) };
+    const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e };
+    let S = {}, wasPending = false, picked = null, file = null, sentAvatar = false;
+
     function render() {
       const on = S.mode === 'on', busy = S.mode === 'starting' || S.mode === 'stopping';
-      $('#pill').textContent = S.mode; $('#pill').className = 'pill' + (on ? ' on' : '');
-      const t = $('#toggle'); t.disabled = busy; t.className = 'big' + (on ? ' off' : '');
-      t.textContent = busy ? (S.mode === 'starting' ? 'Starting…' : 'Stopping…') : on ? 'Turn off AirDrop' : 'Turn on AirDrop';
-      $('#hint').textContent = on ? 'On the iPhone: AirDrop → Everyone for 10 minutes. Wi-Fi is off until you turn this off.' : 'Wi-Fi is switched off while AirDrop is on.';
+      document.body.classList.toggle('on', on);
+      $('#orb').disabled = busy;
+      $('#state').textContent = { off: 'AirDrop is off', starting: 'Starting…', on: 'Ready to share', stopping: 'Turning off…' }[S.mode] || S.mode;
+      $('#hint').textContent = on ? 'Set AirDrop to “Everyone for 10 Minutes” on the iPhone and keep it unlocked.' :
+        busy ? 'Switching Wi-Fi over to AirDrop…' : 'Tap to turn on. Wi-Fi switches off while AirDrop is on.';
       $('#err').textContent = S.error || '';
+      $('#vis').textContent = S.name ? `Visible as “${S.name}”` : '';
+      const me = $('#me'), ini = $('#meini');
+      me.classList.toggle('hide', !S.has_avatar); ini.classList.toggle('hide', !!S.has_avatar);
+      if (S.has_avatar && !sentAvatar) { me.src = '/api/avatar'; sentAvatar = true }
+      ini.textContent = (S.name || 'C')[0].toUpperCase();
       $('#sendcard').classList.toggle('hide', !on);
-      $('#incoming').classList.toggle('hide', !S.pending);
+      $('#sheet').classList.toggle('open', !!S.pending);
       if (S.pending) {
         $('#from').textContent = S.sender || 'Someone';
-        const f = $('#files'); f.replaceChildren(...(S.files || []).map(x => li(`${x.name} (${mb(x.size)})`)));
-        if (!wasPending && window.Notification && Notification.permission === 'granted') new Notification('AirDrop', {body: (S.sender || 'Someone') + ' wants to send a file'});
+        $('#files').replaceChildren(...(S.files || []).map(x => el('li', '', `${x.name} · ${mb(x.size)}`)));
+        if (!wasPending && window.Notification && Notification.permission === 'granted') new Notification('AirDrop', { body: (S.sender || 'Someone') + ' wants to share a file' });
       }
       wasPending = !!S.pending;
       $('#auto').checked = !!S.auto_accept; $('#dir').textContent = S.dir || '';
       const r = (S.received || []).slice().reverse();
-      $('#recv').replaceChildren(...(r.length ? r.map(x => li(`${x.name} · ${mb(x.size)}${x.from ? ' · from ' + x.from : ''}`)) : [li('Nothing yet')]));
+      $('#recv').replaceChildren(...(r.length ? r.map(x => {
+        const row = el('div', 'row'), ic = el('div', 'ico'), t = el('div', 't');
+        ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+        t.append(el('div', '', x.name), el('small', '', `${mb(x.size)}${x.from ? ' · from ' + x.from : ''} · ${ago(x.time)}`));
+        row.append(ic, t); return row
+      }) : [el('div', 'empty', 'Nothing yet')]));
       $('#log').textContent = (S.log || []).join('\n');
+      $('#send').disabled = !(file && picked);
     }
-    $('#toggle').onclick = () => {
+    $('#orb').onclick = () => {
       if (S.mode === 'on') return post('/api/stop');
+      if (S.mode !== 'off') return;
       if (window.Notification && Notification.permission === 'default') Notification.requestPermission();
       post('/api/start');
     };
-    $('#yes').onclick = () => post('/api/accept', {accept: true});
-    $('#no').onclick = () => post('/api/accept', {accept: false});
-    $('#auto').onchange = e => post('/api/config', {auto_accept: e.target.checked});
+    $('#yes').onclick = () => post('/api/accept', { accept: true });
+    $('#no').onclick = () => post('/api/accept', { accept: false });
+    $('#auto').onchange = e => post('/api/config', { auto_accept: e.target.checked });
+
+    function showPeople(list) {
+      const box = $('#people');
+      if (!list.length) { box.replaceChildren(el('div', 'empty', 'Nobody found. Is the iPhone unlocked with Everyone on?')); return }
+      box.replaceChildren(...list.map(n => {
+        const b = el('button', 'person'), c = el('b', '', [...n][0].toUpperCase()), s = el('span', '', n);
+        b.append(c, s); b.onclick = () => { picked = n; box.querySelectorAll('.person').forEach(x => x.classList.toggle('sel', x === b)); render() }; return b
+      }));
+    }
     $('#find').onclick = async () => {
-      $('#find').disabled = true; $('#findmsg').textContent = 'Searching (10 s)…';
-      const r = await post('/api/browse'); $('#find').disabled = false;
-      const d = r.devices || []; $('#findmsg').textContent = d.length ? '' : 'Nothing found. Is the iPhone on "Everyone"?';
-      $('#devs').replaceChildren(...d.map(n => {const e = li(n); e.style.cursor = 'pointer'; e.onclick = () => {$('#to').value = n}; return e}));
+      const b = $('#find'); b.disabled = true; b.textContent = 'Searching…'; $('#sendmsg').textContent = 'Up to 30 s. Keep the iPhone unlocked.';
+      try { const r = await post('/api/browse'); showPeople(r.devices || []) } catch (e) { $('#sendmsg').textContent = 'Search failed: ' + e }
+      b.disabled = false; b.textContent = 'Search for devices'; if ($('#sendmsg').textContent.startsWith('Up to')) $('#sendmsg').textContent = '';
     };
+    function setFile(f) { file = f || null; $('#fname').textContent = f ? `${f.name} · ${mb(f.size)}` : 'Choose or drop a file'; render() }
+    $('#file').onchange = e => setFile(e.target.files[0]);
+    const drop = $('#drop');
+    ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over') }));
+    ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over') }));
+    drop.addEventListener('drop', e => setFile(e.dataTransfer.files[0]));
     $('#send').onclick = async () => {
-      const f = $('#file').files[0], to = $('#to').value.trim();
-      if (!f || !to) {$('#sendmsg').textContent = 'Pick a file and a device.'; return }
-      $('#send').disabled = true; $('#sendmsg').textContent = 'Sending…';
+      if (!file || !picked) return;
+      const b = $('#send'); b.disabled = true; $('#sendmsg').textContent = 'Sending…';
       try {
-        const r = await fetch(`/api/send?to=${encodeURIComponent(to)}&name=${encodeURIComponent(f.name)}`, {method: 'POST', headers: H, body: f}).then(r => r.json());
-        $('#sendmsg').textContent = r.ok ? 'Sent ✓' : 'Failed: ' + (r.out || r.error || 'unknown error');
-      } catch (e) {$('#sendmsg').textContent = 'Failed: ' + e}
-      $('#send').disabled = false;
+        const r = await fetch(`/api/send?to=${encodeURIComponent(picked)}&name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: H, body: file }).then(r => r.json());
+        $('#sendmsg').textContent = r.ok ? 'Sent ✓' : 'Failed: ' + (r.out || r.error || 'unknown error').split('\n').slice(-2).join(' ');
+      } catch (e) { $('#sendmsg').textContent = 'Failed: ' + e }
+      render();
     };
-    new EventSource('/api/events').onmessage = e => {S = JSON.parse(e.data); render()};
+    new EventSource('/api/events').onmessage = e => { S = JSON.parse(e.data); render() };
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
   </script>
 </body>

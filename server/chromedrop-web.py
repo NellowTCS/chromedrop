@@ -21,7 +21,7 @@ ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 def load_conf():
     c = {"PORT": "8780", "RECEIVE_DIR": ""}
     try:
-        for line in open(CONF):
+        for line in open(CONF, encoding="utf-8"):
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
@@ -35,6 +35,46 @@ CV = load_conf()
 PORT = int(CV["PORT"])
 RECV_DIR = CV["RECEIVE_DIR"] or (sorted(glob.glob("/home/chronos/u-*/MyFiles/Downloads"))
                                  or ["/home/chronos/user/MyFiles/Downloads"])[0]
+PROFILES = E("CHROMEDROP_PROFILES", "/home/chronos/u-*")
+
+
+def chrome_profile():
+    """Best effort: the signed-in Google account's name, from Chrome's Preferences."""
+    for d in sorted(glob.glob(PROFILES)):
+        try:
+            prefs = json.load(open(os.path.join(d, "Preferences")))
+        except (OSError, ValueError):
+            continue
+        info = (prefs.get("account_info") or [{}])[0]
+        return {"dir": d, "given": info.get("given_name") or "", "full": info.get("full_name") or "",
+                "email": info.get("email") or ""}
+    return {}
+
+
+def device_name():
+    """What iPhones show: DEVICE_NAME from the config, else "<First name>’s Chromebook", else the host name."""
+    if CV.get("DEVICE_NAME"):
+        return CV["DEVICE_NAME"]
+    given = chrome_profile().get("given", "").strip()
+    if given:
+        return f"{given}\u2019s Chromebook"
+    host = os.uname().nodename
+    return host if host and host != "localhost" else "Chromebook"
+
+
+def avatar_path():
+    prof = chrome_profile()
+    if not prof:
+        return None
+    cands = sorted(glob.glob(os.path.join(prof["dir"], "Accounts", "Avatar Images", "*")))
+    cands += [os.path.join(prof["dir"], "Google Profile Picture.png")]
+    for c in cands:
+        if os.path.isfile(c) and 0 < os.path.getsize(c) < 2_000_000:
+            return c
+    return None
+
+
+NAME = device_name()
 os.makedirs(os.path.join(STATE, "outbox"), exist_ok=True)
 CFG_FILE = os.path.join(STATE, "config.json")
 try:
@@ -51,7 +91,8 @@ R = {"buf": "", "tail": ""}
 
 def snap():
     with LOCK:
-        return dict(S, auto_accept=cfg["auto_accept"], received=RECEIVED[-30:], log=LOG[-80:], dir=RECV_DIR)
+        return dict(S, auto_accept=cfg["auto_accept"], received=RECEIVED[-30:], log=LOG[-80:], dir=RECV_DIR,
+                    name=NAME, has_avatar=bool(avatar_path()))
 
 
 def push():
@@ -211,6 +252,9 @@ def begin(what):
 def _start():
     with OP:
         try:
+            global NAME
+            NAME = device_name()  # the profile may only be readable after login
+            log(f"visible as {NAME!r}")
             log("releasing Wi-Fi")
             for j in ("shill", "wpasupplicant"):
                 sh("/sbin/stop", j)
@@ -233,7 +277,7 @@ def _start():
             fw()
             os.makedirs(RECV_DIR, exist_ok=True)
             m, s = pty.openpty()
-            r = subprocess.Popen([OWLY, "receive", "--dir", RECV_DIR], env=ENV, stdin=s, stdout=s, stderr=s,
+            r = subprocess.Popen([OWLY, "receive", "--name", NAME, "--dir", RECV_DIR], env=ENV, stdin=s, stdout=s, stderr=s,
                                  close_fds=True, start_new_session=True)
             os.close(s)
             P["recv"], P["fd"] = r, m
@@ -283,26 +327,25 @@ def dec(x):
     return x.decode(errors="replace") if isinstance(x, bytes) else (x or "")
 
 
-SKIP = re.compile(r"not advertising|org\.bluez|^(warn|note|error)", re.I)
+BROWSE_SECONDS = 30  # the iPhone needs a while to wake after the BLE advert
+# `owly browse` prints answers to stdout as: <peer>  "<name>" (<addr>); progress goes to stderr.
+RE_DEVICE = re.compile(r'^\S+\s+"(.+)"\s+\(.+\)$')
 
 
 def do_browse():
+    cmd = [OWLY, "browse", "--name", NAME, "--seconds", str(BROWSE_SECONDS)]
     try:
-        r = subprocess.run([OWLY, "browse"], env=ENV, capture_output=True, text=True, timeout=10)
-        out = r.stdout + r.stderr
+        r = subprocess.run(cmd, env=ENV, capture_output=True, text=True, timeout=BROWSE_SECONDS + 10)
+        out, err = r.stdout, r.stderr
     except subprocess.TimeoutExpired as e:
-        out = dec(e.stdout) + dec(e.stderr)
-    out = ANSI.sub("", out)
-    lines = [l.strip() for l in out.splitlines() if l.strip()]
+        out, err = dec(e.stdout), dec(e.stderr)
     devices = []
-    for l in lines:
-        if SKIP.search(l):
-            continue
-        m = re.search(r'"([^"]+)"', l)
-        name = m.group(1) if m else l
-        if name not in devices:
-            devices.append(name)
-    return {"devices": devices, "raw": lines[-30:]}
+    for l in ANSI.sub("", out).splitlines():
+        m = RE_DEVICE.match(l.strip())
+        if m and m.group(1) not in devices:
+            devices.append(m.group(1))
+    raw = [l.strip() for l in ANSI.sub("", err).splitlines() if l.strip()]
+    return {"devices": devices, "raw": raw[-30:], "seconds": BROWSE_SECONDS}
 
 
 def do_send(to, name, rfile, length):
@@ -320,7 +363,7 @@ def do_send(to, name, rfile, length):
                 f.write(chunk)
                 left -= len(chunk)
         log(f"sending {safe} to {to}")
-        r = subprocess.run([OWLY, "send", "--to", to, path], env=ENV, capture_output=True, text=True, timeout=300)
+        r = subprocess.run([OWLY, "send", "--name", NAME, "--to", to, path], env=ENV, capture_output=True, text=True, timeout=300)
         out = ANSI.sub("", r.stdout + r.stderr).strip()
         log(f"send {'ok' if r.returncode == 0 else 'failed'}: {out[-200:]}")
         return {"ok": r.returncode == 0, "out": out[-400:]}
@@ -364,6 +407,13 @@ class H(BaseHTTPRequestHandler):
             return self.reply(200, snap())
         if path == "/api/events":
             return self.sse()
+        if path == "/api/avatar":
+            ap = avatar_path()
+            if not ap:
+                return self.reply(404, {"error": "no avatar"})
+            data = open(ap, "rb").read()
+            ctype = "image/jpeg" if data[:3] == b"\xff\xd8\xff" else "image/webp" if data[8:12] == b"WEBP" else "image/png"
+            return self.reply(200, data, ctype)
         if path in STATIC:
             name, ctype = STATIC[path]
             try:
