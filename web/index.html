@@ -35,8 +35,8 @@
         --red: #ff453a;
         --label: #fff;
         --label2: rgba(235, 235, 245, .62);
-        --glass: rgba(44, 44, 54, .46);
-        --edge: rgba(255, 255, 255, .2);
+        --glass: rgba(106, 106, 141, 0.46);
+        --edge: rgba(227, 72, 72, 0.2);
         --shade: rgba(0, 0, 0, .5);
         --hair: rgba(255, 255, 255, .14);
         --fill: rgba(120, 120, 128, .32);
@@ -121,7 +121,7 @@
       place-items: center;
       font-weight: 600;
       color: #fff;
-      background: linear-gradient(135deg, #8e8cff, #0a84ff);
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
       box-shadow: 0 0 0 2px var(--edge)
     }
 
@@ -336,7 +336,7 @@
       font-size: 24px;
       color: #fff;
       font-weight: 600;
-      background: linear-gradient(135deg, #8e8cff, #0a84ff);
+      background: linear-gradient(135deg, var(--bg2), var(--bg3));
       box-shadow: 0 6px 16px var(--shade);
       transition: transform .2s, box-shadow .2s
     }
