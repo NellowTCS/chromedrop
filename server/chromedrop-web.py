@@ -283,6 +283,9 @@ def dec(x):
     return x.decode(errors="replace") if isinstance(x, bytes) else (x or "")
 
 
+SKIP = re.compile(r"not advertising|org\.bluez|^(warn|note|error)", re.I)
+
+
 def do_browse():
     try:
         r = subprocess.run([OWLY, "browse"], env=ENV, capture_output=True, text=True, timeout=10)
@@ -293,6 +296,8 @@ def do_browse():
     lines = [l.strip() for l in out.splitlines() if l.strip()]
     devices = []
     for l in lines:
+        if SKIP.search(l):
+            continue
         m = re.search(r'"([^"]+)"', l)
         name = m.group(1) if m else l
         if name not in devices:
