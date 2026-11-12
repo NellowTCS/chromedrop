@@ -5,8 +5,8 @@ set -uo pipefail
 export PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
 REPO="${CHROMEDROP_REPO:-NellowTCS/chromedrop}"
 BRANCH="${CHROMEDROP_BRANCH:-main}"
-OWLY_VER="${OWLY_VERSION:-0.4.2}"
-OWLY_URL="${OWLY_URL:-https://github.com/t4t5/owly/releases/download/v${OWLY_VER}/owly_${OWLY_VER}-1_amd64.deb}"
+OWLY_VER="${OWLY_VERSION:-0.4.3}"
+OWLY_URL="${OWLY_URL:-https://github.com/NellowTCS/owly/releases/download/v${OWLY_VER}/owly_${OWLY_VER}-1_amd64.deb}"
 WITH_STUB="${WITH_POLKIT_STUB:-1}"
 say(){ printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die(){ printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
