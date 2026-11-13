@@ -1,6 +1,8 @@
 # chromedrop
 
-![Main view of ChromeDrop demo](assets/main.png)
+| ChromeOS | iPhone |
+| :--- | :---: |
+| <img src="assets/main.png" alt="Main view of ChromeDrop demo" height="350"> | <img src="assets/iphone.jpg" alt="iPhone with the Chromebook showing up in the AirDrop menu" height="350"> |
 
 AirDrop on ChromeOS! 
 A thin installer + local web UI (installable PWA) around [Owly](https://github.com/t4t5/owly).
