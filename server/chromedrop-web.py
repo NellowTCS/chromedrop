@@ -383,6 +383,66 @@ STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/icon-512.png": ("icon-512.png", "image/png")}
 
 
+BATCH = re.compile(r"^[0-9a-f-]{8,40}$")
+MAX_BATCH_FILES = 50
+
+
+def batch_dir(batch):
+    return os.path.join(STATE, "outbox", batch) if BATCH.match(batch or "") else None
+
+
+def purge_old_batches():
+    root = os.path.join(STATE, "outbox")
+    for n in os.listdir(root):
+        p = os.path.join(root, n)
+        if time.time() - os.path.getmtime(p) > 3600:
+            shutil.rmtree(p, ignore_errors=True)
+
+
+def do_stage(batch, name, rfile, length):
+    """Receive one file of a multi-file send into the batch's folder."""
+    d = batch_dir(batch)
+    if not d:
+        return {"ok": False, "error": "bad batch id"}
+    purge_old_batches()
+    os.makedirs(d, exist_ok=True)
+    if len(os.listdir(d)) >= MAX_BATCH_FILES:
+        return {"ok": False, "error": f"at most {MAX_BATCH_FILES} files at a time"}
+    safe = re.sub(r"[^\w.\- ()]", "_", os.path.basename(name)) or "file"
+    stem, ext = os.path.splitext(safe)
+    path, n = os.path.join(d, safe), 1
+    while os.path.exists(path):  # two files with one name: keep both
+        n += 1
+        path = os.path.join(d, f"{stem} ({n}){ext}")
+    with open(path, "wb") as f:
+        left = length
+        while left > 0:
+            chunk = rfile.read(min(1 << 20, left))
+            if not chunk:
+                break
+            f.write(chunk)
+            left -= len(chunk)
+    return {"ok": True, "name": os.path.basename(path)}
+
+
+def do_send_staged(to, batch):
+    d = batch_dir(batch)
+    if not d or not os.path.isdir(d):
+        return {"ok": False, "out": "nothing staged"}
+    files = sorted((os.path.join(d, n) for n in os.listdir(d)), key=lambda p: (os.path.getmtime(p), p))
+    try:
+        log(f"sending {len(files)} file(s) to {to}")
+        r = subprocess.run([OWLY, "send", "--name", NAME, "--to", to, *files], env=ENV,
+                           capture_output=True, text=True, timeout=300 + 60 * len(files))
+        out = ANSI.sub("", r.stdout + r.stderr).strip()
+        log(f"send {'ok' if r.returncode == 0 else 'failed'}: {out[-200:]}")
+        return {"ok": r.returncode == 0, "out": out[-400:], "count": len(files)}
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "out": "timed out"}
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -452,6 +512,10 @@ class H(BaseHTTPRequestHandler):
         u = urllib.parse.urlparse(self.path)
         qs = urllib.parse.parse_qs(u.query)
         n = int(self.headers.get("Content-Length") or 0)
+        if u.path == "/api/stage":
+            if S["mode"] != "on":
+                return self.reply(409, {"error": "turn AirDrop on first"})
+            return self.reply(200, do_stage(qs.get("batch", [""])[0], qs.get("name", ["file"])[0], self.rfile, n))
         if u.path == "/api/send":
             if S["mode"] != "on":
                 return self.reply(409, {"error": "turn AirDrop on first"})
@@ -479,6 +543,13 @@ class H(BaseHTTPRequestHandler):
                 pass
             push()
             return self.reply(200, {"ok": True})
+        if u.path == "/api/send-staged":
+            if S["mode"] != "on":
+                return self.reply(409, {"error": "turn AirDrop on first"})
+            to = str(body.get("to", "")).strip()
+            if not to:
+                return self.reply(400, {"error": "no target device"})
+            return self.reply(200, do_send_staged(to, str(body.get("batch", ""))))
         if u.path == "/api/browse":
             if S["mode"] != "on":
                 return self.reply(409, {"error": "turn AirDrop on first"})

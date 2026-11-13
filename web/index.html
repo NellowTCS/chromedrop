@@ -588,12 +588,12 @@
       <div class="people" id="people">
         <div class="empty">Nobody yet. Open AirDrop on the iPhone, then search.</div>
       </div>
-      <label class="drop" id="drop"><input type="file" id="file">
+      <label class="drop" id="drop"><input type="file" id="file" multiple>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
           stroke-linejoin="round">
           <path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
         </svg>
-        <span id="fname">Choose or drop a file</span></label>
+        <span id="fname">Choose or drop files</span></label>
       <div style="display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap">
         <button class="btn soft" id="find">Search for devices</button>
         <button class="btn" id="send" disabled>Send</button>
@@ -644,14 +644,14 @@
     const mb = n => n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
     const ago = t => { const s = Math.max(0, Date.now() / 1e3 - t); return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : new Date(t * 1e3).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) };
     const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e };
-    let S = {}, wasPending = false, picked = null, file = null, sentAvatar = false;
+    let S = {}, wasPending = false, picked = null, files = [], sentAvatar = false, shareNote = '';
 
     function render() {
       const on = S.mode === 'on', busy = S.mode === 'starting' || S.mode === 'stopping';
       document.body.classList.toggle('on', on);
       $('#orb').disabled = busy;
       $('#state').textContent = { off: 'AirDrop is off', starting: 'Starting…', on: 'Ready to share', stopping: 'Turning off…' }[S.mode] || S.mode;
-      $('#hint').textContent = on ? 'Set AirDrop to “Everyone for 10 Minutes” on the iPhone and keep it unlocked.' :
+      $('#hint').textContent = !on && files.length && shareNote ? shareNote : on ? 'Set AirDrop to “Everyone for 10 Minutes” on the iPhone and keep it unlocked.' :
         busy ? 'Switching Wi-Fi over to AirDrop…' : 'Tap to turn on. Wi-Fi switches off while AirDrop is on.';
       $('#err').textContent = S.error || '';
       $('#vis').textContent = S.name ? `Visible as “${S.name}”` : '';
@@ -676,7 +676,7 @@
         row.append(ic, t); return row
       }) : [el('div', 'empty', 'Nothing yet')]));
       $('#log').textContent = (S.log || []).join('\n');
-      $('#send').disabled = !(file && picked);
+      $('#send').disabled = !(files.length && picked);
     }
     $('#orb').onclick = () => {
       if (S.mode === 'on') return post('/api/stop');
@@ -701,21 +701,49 @@
       try { const r = await post('/api/browse'); showPeople(r.devices || []) } catch (e) { $('#sendmsg').textContent = 'Search failed: ' + e }
       b.disabled = false; b.textContent = 'Search for devices'; if ($('#sendmsg').textContent.startsWith('Up to')) $('#sendmsg').textContent = '';
     };
-    function setFile(f) { file = f || null; $('#fname').textContent = f ? `${f.name} · ${mb(f.size)}` : 'Choose or drop a file'; render() }
-    $('#file').onchange = e => setFile(e.target.files[0]);
+    function setFiles(list) {
+      files = [...(list || [])];
+      const total = files.reduce((n, f) => n + f.size, 0);
+      $('#fname').textContent = !files.length ? 'Choose or drop files' : files.length === 1 ? `${files[0].name} · ${mb(total)}` : `${files.length} files · ${mb(total)}`;
+      render();
+    }
+    $('#file').onchange = e => setFiles(e.target.files);
     const drop = $('#drop');
     ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over') }));
     ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over') }));
-    drop.addEventListener('drop', e => setFile(e.dataTransfer.files[0]));
+    drop.addEventListener('drop', e => setFiles(e.dataTransfer.files));
     $('#send').onclick = async () => {
-      if (!file || !picked) return;
-      const b = $('#send'); b.disabled = true; $('#sendmsg').textContent = 'Sending…';
+      if (!files.length || !picked) return;
+      const b = $('#send'), msg = $('#sendmsg'), n = files.length, batch = crypto.randomUUID();
+      b.disabled = true;
       try {
-        const r = await fetch(`/api/send?to=${encodeURIComponent(picked)}&name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: H, body: file }).then(r => r.json());
-        $('#sendmsg').textContent = r.ok ? 'Sent ✓' : 'Failed: ' + (r.out || r.error || 'unknown error').split('\n').slice(-2).join(' ');
-      } catch (e) { $('#sendmsg').textContent = 'Failed: ' + e }
+        for (const [i, f] of files.entries()) {
+          msg.textContent = n > 1 ? `Preparing ${i + 1} of ${n}…` : 'Preparing…';
+          const u = await fetch(`/api/stage?batch=${batch}&name=${encodeURIComponent(f.name)}`, { method: 'POST', headers: H, body: f }).then(r => r.json());
+          if (!u.ok) throw new Error(u.error || 'could not prepare ' + f.name);
+        }
+        msg.textContent = n > 1 ? `Sending ${n} files…` : 'Sending…';
+        const r = await post('/api/send-staged', { to: picked, batch });
+        msg.textContent = r.ok ? (n > 1 ? `Sent ${n} files ✓` : 'Sent ✓') : 'Failed: ' + (r.out || r.error || 'unknown error').split('\n').slice(-2).join(' ');
+      } catch (e) { msg.textContent = 'Failed: ' + e.message }
       render();
     };
+    // Files shared to Chromedrop from the system share sheet
+    (async () => {
+      if (!new URLSearchParams(location.search).has('shared')) return;
+      history.replaceState(null, '', '/');
+      try {
+        const c = await caches.open('chromedrop-share'), files = [];
+        for (const k of await c.keys()) {
+          const r = await c.match(k);
+          files.push(new File([await r.blob()], decodeURIComponent(r.headers.get('X-Name') || 'file'), { type: r.headers.get('Content-Type') || '' }));
+          await c.delete(k);
+        }
+        if (!files[0]) return;
+        shareNote = (files.length > 1 ? `${files.length} files are ready.` : `“${files[0].name}” is ready.`) + ' Turn on AirDrop, search, and pick a device.';
+        setFiles(files);
+      } catch (e) { $('#sendmsg').textContent = 'Could not read the shared file: ' + e }
+    })();
     new EventSource('/api/events').onmessage = e => { S = JSON.parse(e.data); render() };
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
   </script>

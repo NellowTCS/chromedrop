@@ -30,7 +30,8 @@ A thin installer + local web UI (installable PWA) around [Owly](https://github.c
 
 ![ChromeDrop with sharing on](assets/sharing.png)
 
-Turn AirDrop on, set the Apple device to **Everyone for 10 minutes**, and send (from app or from your device). Accept/decline appears in the app.
+Turn AirDrop on, set the Apple device to **Everyone for 10 minutes**, and send (from app or from your device).
+You can also share to it: in the Files app, right-click a file, choose **Share**, and pick Chromedrop (it must be installed as an app). The files wait in Chromedrop until you turn AirDrop on and pick a device. You can send several files at once (up to 50): they go as a single transfer, so the Apple device asks once. Accept/decline appears in the app.
 While AirDrop is on Wi-Fi is off (at least for Intel cards, which run in Exclusive mode) so turning it off brings Wi-Fi back.
 Files go in your ChromeOS `Downloads`. Keep the app window open (minimised is fine) to get notifications. Theoretically I could support (non-Web Push) push notifications via the local server... I'll add it in a bit.
 
